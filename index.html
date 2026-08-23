@@ -310,6 +310,72 @@
             margin-left: 8px;
         }
 
+
+        /* Outlook calendar integration */
+        .outlook-card {
+            background: #f7f9ff;
+            border: 2px solid #dfe5ff;
+            border-left: 4px solid #667eea;
+            border-radius: 10px;
+            padding: 16px;
+        }
+        .outlook-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .outlook-status {
+            font-size: 12px;
+            color: #666;
+        }
+        .outlook-refresh {
+            padding: 8px 12px;
+            border-radius: 7px;
+            background: #667eea;
+            color: white;
+            font-size: 12px;
+            flex: 0 0 auto;
+        }
+        .outlook-events {
+            display: grid;
+            gap: 9px;
+        }
+        .outlook-event {
+            display: grid;
+            grid-template-columns: 105px 1fr;
+            gap: 12px;
+            padding: 11px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e6e8ef;
+        }
+        .outlook-time {
+            font-weight: 700;
+            color: #667eea;
+            font-size: 13px;
+        }
+        .outlook-title {
+            font-weight: 650;
+            color: #222;
+            font-size: 14px;
+        }
+        .outlook-location {
+            color: #666;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+        .outlook-empty, .outlook-error {
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            color: #666;
+            font-size: 13px;
+        }
+        .outlook-error { color: #b42318; }
+
         @media print {
             body {
                 background: white;
@@ -357,6 +423,25 @@
                 <div class="date-field">
                     <label>Day of Week</label>
                     <input type="text" id="dayOfWeek" readonly>
+                </div>
+            </div>
+
+
+            <!-- LIVE OUTLOOK CALENDAR -->
+            <div class="section" id="outlookSection">
+                <div class="section-title">
+                    <span>📅</span>
+                    Realty Texas Outlook Schedule
+                </div>
+                <p class="section-subtitle">Automatically synced from your published Realty Texas Outlook calendar. Change Today's Date above to view another day.</p>
+                <div class="outlook-card">
+                    <div class="outlook-toolbar">
+                        <div class="outlook-status" id="outlookStatus">Connecting to Outlook…</div>
+                        <button type="button" class="outlook-refresh" onclick="loadOutlookCalendar(true)">↻ Refresh Calendar</button>
+                    </div>
+                    <div class="outlook-events" id="outlookEvents">
+                        <div class="outlook-empty">Loading today's calendar…</div>
+                    </div>
                 </div>
             </div>
 
@@ -577,6 +662,96 @@
     </div>
 
     <script>
+        // ===== REALTY TEXAS OUTLOOK CALENDAR =====
+        const OUTLOOK_BRIDGE_URL = 'https://amrit-calendar-bridge.amritrealtor.workers.dev/';
+        let outlookCalendarEvents = [];
+
+        function eventDateKey(start) {
+            if (!start) return '';
+            return String(start).slice(0, 10);
+        }
+
+        function parseDisplayDate(value) {
+            if (!value) return null;
+            if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                const [y, m, d] = value.split('-').map(Number);
+                return new Date(y, m - 1, d);
+            }
+            const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?(Z)?$/);
+            if (match && !match[7]) {
+                return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(match[4]), Number(match[5]), Number(match[6] || 0));
+            }
+            return new Date(value);
+        }
+
+        function formatEventTime(event) {
+            if (event.allDay) return 'All day';
+            const start = parseDisplayDate(event.start);
+            const end = parseDisplayDate(event.end);
+            if (!start || Number.isNaN(start.getTime())) return '';
+            const fmt = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' });
+            const startText = fmt.format(start);
+            if (!end || Number.isNaN(end.getTime())) return startText;
+            return `${startText}–${fmt.format(end)}`;
+        }
+
+        function renderOutlookForSelectedDate() {
+            const container = document.getElementById('outlookEvents');
+            const status = document.getElementById('outlookStatus');
+            if (!container || !status) return;
+            const selected = document.getElementById('todayDate').value;
+            if (!selected) return;
+            const dayEvents = outlookCalendarEvents.filter(event => eventDateKey(event.start) === selected);
+            const [y, m, d] = selected.split('-').map(Number);
+            const label = new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+            status.textContent = `${label} • ${dayEvents.length} event${dayEvents.length === 1 ? '' : 's'} synced`;
+            if (!dayEvents.length) {
+                container.innerHTML = '<div class="outlook-empty">No Outlook events scheduled for this date.</div>';
+                return;
+            }
+            container.innerHTML = '';
+            dayEvents.forEach(event => {
+                const row = document.createElement('div');
+                row.className = 'outlook-event';
+                const time = document.createElement('div');
+                time.className = 'outlook-time';
+                time.textContent = formatEventTime(event);
+                const details = document.createElement('div');
+                const title = document.createElement('div');
+                title.className = 'outlook-title';
+                title.textContent = event.title || 'Calendar Event';
+                details.appendChild(title);
+                if (event.location) {
+                    const location = document.createElement('div');
+                    location.className = 'outlook-location';
+                    location.textContent = `📍 ${event.location}`;
+                    details.appendChild(location);
+                }
+                row.appendChild(time);
+                row.appendChild(details);
+                container.appendChild(row);
+            });
+        }
+
+        async function loadOutlookCalendar(manual = false) {
+            const status = document.getElementById('outlookStatus');
+            const container = document.getElementById('outlookEvents');
+            if (!status || !container) return;
+            status.textContent = manual ? 'Refreshing Outlook calendar…' : 'Connecting to Outlook…';
+            try {
+                const response = await fetch(OUTLOOK_BRIDGE_URL, { cache: 'no-store' });
+                if (!response.ok) throw new Error(`Calendar bridge returned ${response.status}`);
+                const data = await response.json();
+                if (!data.success || !Array.isArray(data.events)) throw new Error(data.error || 'Calendar data was unavailable.');
+                outlookCalendarEvents = data.events;
+                renderOutlookForSelectedDate();
+            } catch (error) {
+                console.error('Outlook calendar error:', error);
+                status.textContent = 'Outlook sync unavailable';
+                container.innerHTML = '<div class="outlook-error">Could not load the Outlook calendar. Tap Refresh Calendar to try again.</div>';
+            }
+        }
+
         const STORAGE_KEY = 'amritPlannerDataV2';
         const plannerForm = document.getElementById('plannerForm');
         const todayInput = document.getElementById('todayDate');
@@ -696,12 +871,14 @@
         const restored = loadData();
         setDefaultDates(!restored);
         updateDayOfWeek();
+        loadOutlookCalendar();
 
         // Changing today's date also updates the weekday and tomorrow's date.
         todayInput.addEventListener('change', function() {
             updateDayOfWeek();
             updateTomorrowFromToday();
             saveData(false);
+            renderOutlookForSelectedDate();
         });
 
         // Save silently whenever the user changes anything.
