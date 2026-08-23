@@ -47,7 +47,8 @@
         }
 
         .date-selector {
-            display: flex;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
             gap: 20px;
             margin-bottom: 30px;
             padding: 20px;
@@ -56,7 +57,21 @@
         }
 
         .date-field {
-            flex: 1;
+            min-width: 0;
+        }
+
+        .day-display {
+            width: 100%;
+            min-height: 44px;
+            padding: 10px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            background: white;
+            font-size: 14px;
+            font-weight: 700;
+            color: #333;
+            display: flex;
+            align-items: center;
         }
 
         .date-field label {
@@ -395,6 +410,7 @@
             .container {
                 padding: 20px;
             }
+            .date-selector,
             .time-grid,
             .time-grid-header,
             .time-slot {
@@ -410,7 +426,7 @@
     <div class="container">
         <div class="header">
             <h1>🚀 AMRIT'S EMPIRE ACTIVATION</h1>
-            <p>Your 7 AM Daily Ritual (5 minutes)</p>
+            <p>Your 7 AM Daily Ritual (5 minutes) · Planner v3.2</p>
         </div>
 
         <form id="plannerForm">
@@ -422,7 +438,8 @@
                 </div>
                 <div class="date-field">
                     <label>Day of Week</label>
-                    <input type="text" id="dayOfWeek" readonly>
+                    <div class="day-display" id="dayOfWeekDisplay">—</div>
+                    <input type="hidden" id="dayOfWeek">
                 </div>
             </div>
 
@@ -737,18 +754,38 @@
             const status = document.getElementById('outlookStatus');
             const container = document.getElementById('outlookEvents');
             if (!status || !container) return;
-            status.textContent = manual ? 'Refreshing Outlook calendar…' : 'Connecting to Outlook…';
+
+            status.textContent = manual ? 'Refreshing Outlook calendar…' : 'Loading Outlook calendar…';
+            container.innerHTML = '<div class="outlook-empty">Loading schedule…</div>';
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 12000);
+
             try {
-                const response = await fetch(OUTLOOK_BRIDGE_URL, { cache: 'no-store' });
+                const separator = OUTLOOK_BRIDGE_URL.includes('?') ? '&' : '?';
+                const url = `${OUTLOOK_BRIDGE_URL}${separator}v=${Date.now()}`;
+                const response = await fetch(url, {
+                    cache: 'no-store',
+                    mode: 'cors',
+                    signal: controller.signal,
+                    headers: { 'Accept': 'application/json' }
+                });
+                clearTimeout(timeoutId);
+
                 if (!response.ok) throw new Error(`Calendar bridge returned ${response.status}`);
                 const data = await response.json();
-                if (!data.success || !Array.isArray(data.events)) throw new Error(data.error || 'Calendar data was unavailable.');
+                if (!data.success || !Array.isArray(data.events)) {
+                    throw new Error(data.error || 'Calendar data was unavailable.');
+                }
+
                 outlookCalendarEvents = data.events;
                 renderOutlookForSelectedDate();
             } catch (error) {
+                clearTimeout(timeoutId);
                 console.error('Outlook calendar error:', error);
-                status.textContent = 'Outlook sync unavailable';
-                container.innerHTML = '<div class="outlook-error">Could not load the Outlook calendar. Tap Refresh Calendar to try again.</div>';
+                const timedOut = error && error.name === 'AbortError';
+                status.textContent = timedOut ? 'Outlook connection timed out' : 'Outlook sync unavailable';
+                container.innerHTML = `<div class="outlook-error">${timedOut ? 'The Outlook bridge took too long to respond.' : 'Could not load the Outlook calendar.'} Tap Refresh Calendar to try again.</div>`;
             }
         }
 
@@ -757,6 +794,7 @@
         const todayInput = document.getElementById('todayDate');
         const tomorrowInput = document.getElementById('tomorrowDate');
         const dayOfWeekInput = document.getElementById('dayOfWeek');
+        const dayOfWeekDisplay = document.getElementById('dayOfWeekDisplay');
 
         function pad2(n) {
             return String(n).padStart(2, '0');
@@ -791,9 +829,12 @@
             const date = parseLocalDate(todayInput.value);
             if (!date) {
                 dayOfWeekInput.value = '';
+                if (dayOfWeekDisplay) dayOfWeekDisplay.textContent = '—';
                 return;
             }
-            dayOfWeekInput.value = date.toLocaleDateString('en-US', { weekday: 'long' });
+            const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+            dayOfWeekInput.value = dayName;
+            if (dayOfWeekDisplay) dayOfWeekDisplay.textContent = dayName;
         }
 
         function updateTomorrowFromToday() {
