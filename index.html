@@ -515,7 +515,7 @@
 
                 <div class="input-block">
                     <label class="input-label">Tomorrow's Date</label>
-                    <input type="text" id="tomorrowDate" readonly class="input-field">
+                    <input type="date" id="tomorrowDate" class="input-field">
                 </div>
 
                 <div class="input-block">
@@ -577,59 +577,143 @@
     </div>
 
     <script>
-        // Set today's date
+        const STORAGE_KEY = 'amritPlannerDataV2';
+        const plannerForm = document.getElementById('plannerForm');
         const todayInput = document.getElementById('todayDate');
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
-        todayInput.value = `${year}-${month}-${day}`;
+        const tomorrowInput = document.getElementById('tomorrowDate');
+        const dayOfWeekInput = document.getElementById('dayOfWeek');
 
-        // Function to update day of week
-        function updateDayOfWeek() {
-            const dateStr = document.getElementById('todayDate').value;
-            if (!dateStr) return;
-            
-            const date = new Date(dateStr + 'T00:00:00');
-            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-            document.getElementById('dayOfWeek').value = days[date.getDay()];
+        function pad2(n) {
+            return String(n).padStart(2, '0');
         }
 
-        // Update day of week when date changes
-        todayInput.addEventListener('change', function() {
+        function toLocalDateString(date) {
+            return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+        }
+
+        function parseLocalDate(dateStr) {
+            if (!dateStr) return null;
+            const [year, month, day] = dateStr.split('-').map(Number);
+            return new Date(year, month - 1, day, 12, 0, 0);
+        }
+
+        function setDefaultDates(force = false) {
+            const now = new Date();
+            if (force || !todayInput.value) {
+                todayInput.value = toLocalDateString(now);
+            }
             updateDayOfWeek();
-            updateTomorrowDate();
-        });
 
-        // Set initial day of week
-        updateDayOfWeek();
-
-        function updateTomorrowDate() {
-            const dateInput = document.getElementById('todayDate').value;
-            const date = new Date(dateInput);
-            date.setDate(date.getDate() + 1);
-            const tomorrow = date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
-            document.getElementById('tomorrowDate').value = tomorrow;
-        }
-
-        updateTomorrowDate();
-
-        function saveData() {
-            const formData = new FormData(document.getElementById('plannerForm'));
-            const data = Object.fromEntries(formData);
-            localStorage.setItem('plannerData', JSON.stringify(data));
-            alert('✅ Your planner data has been saved!');
-        }
-
-        function resetForm() {
-            if (confirm('Are you sure? This will clear all your entries.')) {
-                document.getElementById('plannerForm').reset();
-                updateTomorrowDate();
+            if (force || !tomorrowInput.value) {
+                const selected = parseLocalDate(todayInput.value) || now;
+                const tomorrow = new Date(selected);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                tomorrowInput.value = toLocalDateString(tomorrow);
             }
         }
 
-        // Auto-save every 30 seconds
-        setInterval(saveData, 30000);
+        function updateDayOfWeek() {
+            const date = parseLocalDate(todayInput.value);
+            if (!date) {
+                dayOfWeekInput.value = '';
+                return;
+            }
+            dayOfWeekInput.value = date.toLocaleDateString('en-US', { weekday: 'long' });
+        }
+
+        function updateTomorrowFromToday() {
+            const date = parseLocalDate(todayInput.value);
+            if (!date) return;
+            const tomorrow = new Date(date);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrowInput.value = toLocalDateString(tomorrow);
+        }
+
+        function getFields() {
+            return Array.from(plannerForm.querySelectorAll('input, textarea, select'));
+        }
+
+        function serializePlanner() {
+            return getFields().map((field, index) => ({
+                index,
+                id: field.id || null,
+                type: field.type || field.tagName.toLowerCase(),
+                value: field.value,
+                checked: field.type === 'checkbox' ? field.checked : undefined
+            }));
+        }
+
+        function saveData(showMessage = true) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    savedAt: new Date().toISOString(),
+                    fields: serializePlanner()
+                }));
+                if (showMessage) alert('✅ Your planner data has been saved!');
+            } catch (error) {
+                if (showMessage) alert('Unable to save planner data in this browser.');
+                console.error(error);
+            }
+        }
+
+        function loadData() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (!saved) return false;
+                const payload = JSON.parse(saved);
+                const fields = getFields();
+                if (!Array.isArray(payload.fields)) return false;
+
+                payload.fields.forEach(item => {
+                    let field = null;
+                    if (item.id) field = document.getElementById(item.id);
+                    if (!field && Number.isInteger(item.index)) field = fields[item.index];
+                    if (!field) return;
+
+                    if (field.type === 'checkbox') {
+                        field.checked = Boolean(item.checked);
+                    } else if (typeof item.value === 'string') {
+                        field.value = item.value;
+                    }
+                });
+                return true;
+            } catch (error) {
+                console.error(error);
+                return false;
+            }
+        }
+
+        function resetForm() {
+            if (confirm('Are you sure? This will clear all your saved planner entries.')) {
+                localStorage.removeItem(STORAGE_KEY);
+                plannerForm.reset();
+                setDefaultDates(true);
+                saveData(false);
+            }
+        }
+
+        // Restore saved entries first. If there is no saved date, use today's local date.
+        const restored = loadData();
+        setDefaultDates(!restored);
+        updateDayOfWeek();
+
+        // Changing today's date also updates the weekday and tomorrow's date.
+        todayInput.addEventListener('change', function() {
+            updateDayOfWeek();
+            updateTomorrowFromToday();
+            saveData(false);
+        });
+
+        // Save silently whenever the user changes anything.
+        plannerForm.addEventListener('input', () => saveData(false));
+        plannerForm.addEventListener('change', () => saveData(false));
+
+        // Backup autosave every 10 seconds and when the app/page is hidden.
+        setInterval(() => saveData(false), 10000);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') saveData(false);
+        });
+        window.addEventListener('pagehide', () => saveData(false));
     </script>
 </body>
 </html>
