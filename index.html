@@ -60,18 +60,18 @@
             min-width: 0;
         }
 
-        .day-display {
+        .day-of-week-input {
             width: 100%;
             min-height: 44px;
             padding: 10px 12px;
             border: 2px solid #ddd;
             border-radius: 6px;
-            background: white;
+            background: #fff;
             font-size: 14px;
             font-weight: 700;
             color: #333;
-            display: flex;
-            align-items: center;
+            -webkit-text-fill-color: #333;
+            opacity: 1;
         }
 
         .date-field label {
@@ -391,6 +391,127 @@
         }
         .outlook-error { color: #b42318; }
 
+
+        /* Command Center quick capture */
+        .command-card {
+            background: linear-gradient(180deg, #fbfcff 0%, #f5f7ff 100%);
+            border: 2px solid #dfe5ff;
+            border-left: 4px solid #667eea;
+            border-radius: 10px;
+            padding: 16px;
+        }
+        .capture-grid {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .capture-grid input, .capture-grid select, .capture-grid textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d7dbea;
+            border-radius: 7px;
+            font: inherit;
+            background: white;
+        }
+        .capture-grid textarea {
+            grid-column: 1 / -1;
+            min-height: 72px;
+            resize: vertical;
+        }
+        .capture-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .capture-actions button, .capture-action-link {
+            padding: 9px 12px;
+            border-radius: 7px;
+            border: none;
+            font-weight: 650;
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .capture-primary { background: #667eea; color: white; }
+        .capture-secondary { background: #eef1ff; color: #4f5fc7; }
+        .capture-inbox { display: grid; gap: 8px; }
+        .capture-item {
+            display: grid;
+            grid-template-columns: 92px 1fr auto;
+            gap: 10px;
+            align-items: start;
+            background: white;
+            border: 1px solid #e5e7ef;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .capture-badge {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #667eea;
+        }
+        .capture-text { font-weight: 650; color: #222; }
+        .capture-meta { font-size: 11px; color: #777; margin-top: 3px; }
+        .capture-item-actions { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
+        .capture-mini {
+            border: none;
+            background: #f1f3f8;
+            color: #333;
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        .capture-empty { color: #777; font-size: 13px; padding: 8px 0; }
+
+        /* Seven day agenda */
+        .week-agenda {
+            margin-top: 16px;
+            border-top: 1px solid #e3e6f2;
+            padding-top: 14px;
+        }
+        .week-agenda-title {
+            font-size: 13px;
+            font-weight: 800;
+            color: #4f5fc7;
+            margin-bottom: 10px;
+        }
+        .week-day {
+            background: white;
+            border: 1px solid #e6e8ef;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            overflow: hidden;
+        }
+        .week-day-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 8px 10px;
+            background: #f7f8fc;
+            font-size: 12px;
+            font-weight: 800;
+            color: #4b5563;
+        }
+        .week-day-events { padding: 4px 10px 8px; }
+        .week-event {
+            display: grid;
+            grid-template-columns: 92px 1fr;
+            gap: 8px;
+            padding: 6px 0;
+            border-bottom: 1px solid #f0f1f5;
+            font-size: 12px;
+        }
+        .week-event:last-child { border-bottom: none; }
+        .week-event-time { color: #667eea; font-weight: 750; }
+        .week-event-title { color: #222; font-weight: 600; }
+
         @media print {
             body {
                 background: white;
@@ -411,6 +532,7 @@
                 padding: 20px;
             }
             .date-selector,
+            .capture-grid,
             .time-grid,
             .time-grid-header,
             .time-slot {
@@ -426,7 +548,7 @@
     <div class="container">
         <div class="header">
             <h1>🚀 AMRIT'S EMPIRE ACTIVATION</h1>
-            <p>Your 7 AM Daily Ritual (5 minutes) · Planner v3.2</p>
+            <p>Your 7 AM Daily Ritual (5 minutes) · Planner v4.1</p>
         </div>
 
         <form id="plannerForm">
@@ -437,9 +559,38 @@
                     <input type="date" id="todayDate" required>
                 </div>
                 <div class="date-field">
-                    <label>Day of Week</label>
-                    <div class="day-display" id="dayOfWeekDisplay">—</div>
-                    <input type="hidden" id="dayOfWeek">
+                    <label for="dayOfWeek">Day of Week</label>
+                    <input type="text" id="dayOfWeek" class="day-of-week-input" value="" readonly aria-readonly="true">
+                </div>
+            </div>
+
+
+            <!-- COMMAND CENTER QUICK CAPTURE -->
+            <div class="section" id="commandCenterSection">
+                <div class="section-title">
+                    <span>⚡</span>
+                    Quick Capture Command Center
+                </div>
+                <p class="section-subtitle">Capture it before it disappears. Type it, dictate it, or feed it from an iPhone Shortcut. Then route it to your calendar or task system.</p>
+                <div class="command-card">
+                    <div class="capture-grid">
+                        <select id="captureType" aria-label="Capture type">
+                            <option value="task">✅ Task / To Do</option>
+                            <option value="event">📅 Appointment / Event</option>
+                            <option value="followup">☎️ Follow-up</option>
+                            <option value="note">📝 Note / Idea</option>
+                        </select>
+                        <input type="datetime-local" id="captureWhen" aria-label="When">
+                        <textarea id="captureText" placeholder="Say or type it exactly as it enters your head…"></textarea>
+                    </div>
+                    <div class="capture-actions">
+                        <button type="button" class="capture-primary" onclick="addQuickCapture()">＋ Capture</button>
+                        <button type="button" class="capture-secondary" onclick="startVoiceCapture()">🎙 Speak</button>
+                        <button type="button" class="capture-secondary" onclick="openToDo()">✅ Open Microsoft To Do</button>
+                    </div>
+                    <div class="capture-inbox" id="captureInbox">
+                        <div class="capture-empty">Your capture inbox is clear.</div>
+                    </div>
                 </div>
             </div>
 
@@ -458,6 +609,11 @@
                     </div>
                     <div class="outlook-events" id="outlookEvents">
                         <div class="outlook-empty">Loading today's calendar…</div>
+                    </div>
+
+                    <div class="week-agenda">
+                        <div class="week-agenda-title">NEXT 7 DAYS · REALTY TEXAS OUTLOOK</div>
+                        <div id="weekAgenda"><div class="outlook-empty">Loading 7-day agenda…</div></div>
                     </div>
                 </div>
             </div>
@@ -780,6 +936,7 @@
 
                 outlookCalendarEvents = data.events;
                 renderOutlookForSelectedDate();
+                renderWeekAgenda();
             } catch (error) {
                 clearTimeout(timeoutId);
                 console.error('Outlook calendar error:', error);
@@ -789,12 +946,210 @@
             }
         }
 
+
+        function addDaysKey(dateKey, days) {
+            const [y, m, d] = dateKey.split('-').map(Number);
+            const dt = new Date(y, m - 1, d, 12, 0, 0);
+            dt.setDate(dt.getDate() + days);
+            return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+        }
+
+        function renderWeekAgenda() {
+            const root = document.getElementById('weekAgenda');
+            const selected = document.getElementById('todayDate').value;
+            if (!root || !selected) return;
+            root.innerHTML = '';
+            for (let i = 0; i < 7; i++) {
+                const key = addDaysKey(selected, i);
+                const events = outlookCalendarEvents.filter(event => eventDateKey(event.start) === key);
+                const [y, m, d] = key.split('-').map(Number);
+                const label = new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                const day = document.createElement('div');
+                day.className = 'week-day';
+                const header = document.createElement('div');
+                header.className = 'week-day-header';
+                header.innerHTML = `<span>${label}${i === 0 ? ' · TODAY' : ''}</span><span>${events.length} event${events.length === 1 ? '' : 's'}</span>`;
+                day.appendChild(header);
+                const body = document.createElement('div');
+                body.className = 'week-day-events';
+                if (!events.length) {
+                    body.innerHTML = '<div class="capture-empty">Open</div>';
+                } else {
+                    events.forEach(event => {
+                        const row = document.createElement('div');
+                        row.className = 'week-event';
+                        const time = document.createElement('div');
+                        time.className = 'week-event-time';
+                        time.textContent = formatEventTime(event);
+                        const title = document.createElement('div');
+                        title.className = 'week-event-title';
+                        title.textContent = event.title || 'Calendar Event';
+                        if (event.location) title.textContent += ` · ${event.location}`;
+                        row.appendChild(time);
+                        row.appendChild(title);
+                        body.appendChild(row);
+                    });
+                }
+                day.appendChild(body);
+                root.appendChild(day);
+            }
+        }
+
+        const CAPTURE_STORAGE_KEY = 'amritCommandCenterCapturesV1';
+        let commandCaptures = [];
+
+        function loadCaptures() {
+            try {
+                const raw = localStorage.getItem(CAPTURE_STORAGE_KEY);
+                commandCaptures = raw ? JSON.parse(raw) : [];
+                if (!Array.isArray(commandCaptures)) commandCaptures = [];
+            } catch (_) { commandCaptures = []; }
+            renderCaptures();
+        }
+
+        function saveCaptures() {
+            localStorage.setItem(CAPTURE_STORAGE_KEY, JSON.stringify(commandCaptures));
+            renderCaptures();
+        }
+
+        function escapeHtml(value) {
+            return String(value || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+        }
+
+        function captureLabel(type) {
+            return ({task:'Task', event:'Event', followup:'Follow-up', note:'Note'})[type] || 'Capture';
+        }
+
+        function formatCaptureWhen(value) {
+            if (!value) return 'No time assigned';
+            const dt = new Date(value);
+            if (Number.isNaN(dt.getTime())) return value;
+            return dt.toLocaleString('en-US', { weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
+        }
+
+        function addQuickCapture(prefill = null) {
+            const typeEl = document.getElementById('captureType');
+            const whenEl = document.getElementById('captureWhen');
+            const textEl = document.getElementById('captureText');
+            const type = prefill?.type || typeEl.value;
+            const when = prefill?.when || whenEl.value;
+            const text = (prefill?.text || textEl.value || '').trim();
+            if (!text) {
+                alert('Tell me what you need to capture first.');
+                textEl.focus();
+                return;
+            }
+            commandCaptures.unshift({ id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, type, when, text, createdAt: new Date().toISOString(), done:false });
+            saveCaptures();
+            if (!prefill) {
+                textEl.value = '';
+                whenEl.value = '';
+            }
+        }
+
+        function deleteCapture(id) {
+            commandCaptures = commandCaptures.filter(item => item.id !== id);
+            saveCaptures();
+        }
+
+        function toggleCapture(id) {
+            const item = commandCaptures.find(item => item.id === id);
+            if (item) item.done = !item.done;
+            saveCaptures();
+        }
+
+        async function copyCapture(id) {
+            const item = commandCaptures.find(item => item.id === id);
+            if (!item) return;
+            const text = `${item.text}${item.when ? ` — ${formatCaptureWhen(item.when)}` : ''}`;
+            try {
+                await navigator.clipboard.writeText(text);
+                alert('Copied. Paste it into Microsoft To Do or Outlook.');
+            } catch (_) {
+                prompt('Copy this:', text);
+            }
+        }
+
+        function downloadCaptureICS(id) {
+            const item = commandCaptures.find(item => item.id === id);
+            if (!item) return;
+            let start = item.when ? new Date(item.when) : new Date();
+            if (Number.isNaN(start.getTime())) start = new Date();
+            const end = new Date(start.getTime() + 60 * 60 * 1000);
+            const stamp = d => d.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+            const safe = String(item.text).replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
+            const ics = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Amrit Command Center//EN','BEGIN:VEVENT',`UID:${item.id}@amrit-command-center`,`DTSTAMP:${stamp(new Date())}`,`DTSTART:${stamp(start)}`,`DTEND:${stamp(end)}`,`SUMMARY:${safe}`,'END:VEVENT','END:VCALENDAR'].join('\r\n');
+            const blob = new Blob([ics], { type:'text/calendar;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'amrit-event.ics';
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        }
+
+        function renderCaptures() {
+            const root = document.getElementById('captureInbox');
+            if (!root) return;
+            if (!commandCaptures.length) {
+                root.innerHTML = '<div class="capture-empty">Your capture inbox is clear.</div>';
+                return;
+            }
+            root.innerHTML = commandCaptures.map(item => {
+                const style = item.done ? 'opacity:.55;text-decoration:line-through;' : '';
+                const routeButton = item.type === 'event'
+                    ? `<button type="button" class="capture-mini" onclick="downloadCaptureICS('${item.id}')">📅 Calendar</button>`
+                    : `<button type="button" class="capture-mini" onclick="copyCapture('${item.id}')">📋 Copy</button>`;
+                return `<div class="capture-item" style="${style}">
+                    <div class="capture-badge">${escapeHtml(captureLabel(item.type))}</div>
+                    <div><div class="capture-text">${escapeHtml(item.text)}</div><div class="capture-meta">${escapeHtml(formatCaptureWhen(item.when))}</div></div>
+                    <div class="capture-item-actions">${routeButton}<button type="button" class="capture-mini" onclick="toggleCapture('${item.id}')">${item.done ? '↩︎' : '✓'}</button><button type="button" class="capture-mini" onclick="deleteCapture('${item.id}')">✕</button></div>
+                </div>`;
+            }).join('');
+        }
+
+        function openToDo() {
+            window.open('https://to-do.office.com/tasks/', '_blank');
+        }
+
+        function startVoiceCapture() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert('Use the microphone button on the iPhone/iPad keyboard to dictate into the capture box.');
+                document.getElementById('captureText').focus();
+                return;
+            }
+            const buttonText = document.getElementById('captureText');
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+            recognition.onresult = event => {
+                const spoken = event.results[0][0].transcript;
+                buttonText.value = spoken;
+                buttonText.dispatchEvent(new Event('input', { bubbles:true }));
+            };
+            recognition.onerror = () => {
+                alert('Voice capture was unavailable. Use the keyboard microphone to dictate instead.');
+                buttonText.focus();
+            };
+            recognition.start();
+        }
+
+        function ingestShortcutCapture() {
+            const params = new URLSearchParams(window.location.search);
+            const text = params.get('capture');
+            if (!text) return;
+            addQuickCapture({ text, type: params.get('type') || 'task', when: params.get('when') || '' });
+            params.delete('capture'); params.delete('type'); params.delete('when');
+            const clean = window.location.pathname + (params.toString() ? '?' + params.toString() : '') + window.location.hash;
+            history.replaceState({}, '', clean);
+        }
+
         const STORAGE_KEY = 'amritPlannerDataV2';
         const plannerForm = document.getElementById('plannerForm');
         const todayInput = document.getElementById('todayDate');
         const tomorrowInput = document.getElementById('tomorrowDate');
         const dayOfWeekInput = document.getElementById('dayOfWeek');
-        const dayOfWeekDisplay = document.getElementById('dayOfWeekDisplay');
 
         function pad2(n) {
             return String(n).padStart(2, '0');
@@ -829,12 +1184,10 @@
             const date = parseLocalDate(todayInput.value);
             if (!date) {
                 dayOfWeekInput.value = '';
-                if (dayOfWeekDisplay) dayOfWeekDisplay.textContent = '—';
                 return;
             }
             const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
             dayOfWeekInput.value = dayName;
-            if (dayOfWeekDisplay) dayOfWeekDisplay.textContent = dayName;
         }
 
         function updateTomorrowFromToday() {
@@ -913,6 +1266,8 @@
         setDefaultDates(!restored);
         updateDayOfWeek();
         loadOutlookCalendar();
+        loadCaptures();
+        ingestShortcutCapture();
 
         // Changing today's date also updates the weekday and tomorrow's date.
         todayInput.addEventListener('change', function() {
@@ -920,6 +1275,7 @@
             updateTomorrowFromToday();
             saveData(false);
             renderOutlookForSelectedDate();
+            renderWeekAgenda();
         });
 
         // Save silently whenever the user changes anything.
